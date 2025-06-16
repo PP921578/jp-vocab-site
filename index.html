@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>日语词汇学习网站</title>
+  <link rel="manifest" href="/jp-vocab-site/manifest.json">
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f2f2f2; }
+    header { background: #4a90e2; color: white; padding: 1rem; text-align: center; }
+    .container { padding: 1rem; }
+    .search-box { display: flex; justify-content: center; margin-bottom: 1rem; }
+    input[type="text"] { padding: 0.5rem; width: 60%; max-width: 400px; border: 1px solid #ccc; border-radius: 4px; }
+    .category, .level { margin-bottom: 1rem; }
+    .word-card { background: white; border: 1px solid #ddd; margin-bottom: 0.5rem; padding: 1rem; border-radius: 5px; }
+    .actions button { margin-top: 0.5rem; margin-right: 0.5rem; }
+    #dictationBox { display: none; margin-top: 1rem; }
+    #canvasWrapper { display: none; margin-top: 1rem; text-align: center; }
+    canvas { border: 1px solid #000; background: white; }
+    @media (max-width: 600px) { input[type="text"] { width: 90%; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>日语词汇学习</h1>
+  <p>生活场景 + JLPT N5-N1 等级</p>
+</header>
+<div class="container">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="搜索单词或汉字...">
+  </div>
+  <div class="filters">
+    <div class="category">
+      <strong>场景分类：</strong>
+      <select id="sceneFilter">
+        <option value="">全部</option>
+        <option value="购物">购物</option>
+        <option value="餐厅">餐厅</option>
+        <option value="旅行">旅行</option>
+      </select>
+    </div>
+    <div class="level">
+      <strong>等级筛选：</strong>
+      <select id="levelFilter">
+        <option value="">全部</option>
+        <option value="N5">N5</option>
+        <option value="N4">N4</option>
+        <option value="N3">N3</option>
+        <option value="N2">N2</option>
+        <option value="N1">N1</option>
+      </select>
+    </div>
+  </div>
+  <div id="wordList">
+    <div class="word-card" data-level="N5" data-scene="餐厅">
+      <h3>たべる（食べる）</h3>
+      <p>意思：吃</p>
+      <div class="actions">
+        <button onclick="addToVocab('食べる')">加入词汇本</button>
+        <button onclick="startDictation('食べる')">听写</button>
+        <button onclick="recommendWord()">推荐词汇</button>
+      </div>
+    </div>
+    <div class="word-card" data-level="N3" data-scene="旅行">
+      <h3>りょこう（旅行）</h3>
+      <p>意思：旅行</p>
+      <div class="actions">
+        <button onclick="addToVocab('旅行')">加入词汇本</button>
+        <button onclick="startDictation('旅行')">听写</button>
+        <button onclick="recommendWord()">推荐词汇</button>
+      </div>
+    </div>
+  </div>
+  <div id="dictationBox">
+    <p>请听写：<strong id="dictationWord"></strong></p>
+    <input type="text" id="dictationInput" placeholder="请输入拼写">
+    <button onclick="checkDictation()">提交</button>
+    <p id="dictationResult"></p>
+  </div>
+  <div id="canvasWrapper">
+    <p>在下方书写区域书写该单词：</p>
+    <canvas id="handwritingCanvas" width="300" height="150"></canvas><br>
+    <button onclick="clearCanvas()">清除</button>
+  </div>
+</div>
+<script>
+  let currentWord = "";
+  const vocabKey = "vocabList";
+  const canvas = document.getElementById("handwritingCanvas");
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+  document.getElementById("searchInput").addEventListener("input", filterWords);
+  document.getElementById("levelFilter").addEventListener("change", filterWords);
+  document.getElementById("sceneFilter").addEventListener("change", filterWords);
+  canvas.addEventListener("mousedown", () => drawing = true);
+  canvas.addEventListener("mouseup", () => drawing = false);
+  canvas.addEventListener("mousemove", draw);
+  function draw(e) {
+    if (!drawing) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000";
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  }
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  function filterWords() {
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const level = document.getElementById("levelFilter").value;
+    const scene = document.getElementById("sceneFilter").value;
+    const cards = document.querySelectorAll(".word-card");
+    cards.forEach(card => {
+      const text = card.textContent.toLowerCase();
+      const cardLevel = card.getAttribute("data-level");
+      const cardScene = card.getAttribute("data-scene");
+      const matchSearch = text.includes(search);
+      const matchLevel = !level || cardLevel === level;
+      const matchScene = !scene || cardScene === scene;
+      card.style.display = (matchSearch && matchLevel && matchScene) ? "block" : "none";
+    });
+  }
+  function addToVocab(word) {
+    let list = JSON.parse(localStorage.getItem(vocabKey)) || [];
+    if (!list.includes(word)) {
+      list.push(word);
+      localStorage.setItem(vocabKey, JSON.stringify(list));
+      alert("已加入词汇本：" + word);
+    } else {
+      alert("词汇已存在！");
+    }
+  }
+  function startDictation(word) {
+    currentWord = word;
+    document.getElementById("dictationWord").innerText = "（发音模拟）";
+    document.getElementById("dictationInput").value = "";
+    document.getElementById("dictationResult").innerText = "";
+    document.getElementById("dictationBox").style.display = "block";
+    document.getElementById("canvasWrapper").style.display = "block";
+  }
+  function checkDictation() {
+    const input = document.getElementById("dictationInput").value.trim();
+    const result = document.getElementById("dictationResult");
+    if (input === currentWord) {
+      result.innerText = "✅ 正确！";
+      result.style.color = "green";
+    } else {
+      result.innerText = "❌ 错误，应为：" + currentWord;
+      result.style.color = "red";
+    }
+  }
+  function recommendWord() {
+    const examples = ["勉強", "友達", "本", "先生"];
+    const word = examples[Math.floor(Math.random() * examples.length)];
+    alert("推荐词汇：" + word);
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/jp-vocab-site/sw.js').then(function() {
+      console.log("PWA Service Worker registered");
+    });
+  }
+</script>
+</body>
+</html>

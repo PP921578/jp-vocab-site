@@ -1,0 +1,10 @@
+
+{
+  "name": "日语词汇学习",
+  "short_name": "日语学习",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "icons": []
+}
